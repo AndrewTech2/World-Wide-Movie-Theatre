@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <link rel="stylesheet" href="../static/styles.css">
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>WWMT - {% block title %} {% endblock %}</title>
+
+        <!-- Bootstrap 5 integration -->
+        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB" crossorigin="anonymous">
+        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js" integrity="sha384-FKyoEForCGlyvwx9Hj09JcYn3nv7wiPVlz7YYwJrWVcXK/BmnVDxM+D2scQbITxI" crossorigin="anonymous"></script>
+    </head>
+    <body>
+        <h1 class="demo-text">The world's movie theatre. Purchase tickets from all around the globe effortlessly.</h1>
+        <a class="btn-primary btn register-link" href="/register">Register</a>
+        <a class="btn-secondary btn login-link" href="/login">Login</a>
+        <nav class="navbar navbar-expand-lg bg-body-tertiary">
+  <div class="container-fluid">
+    <a class="navbar-brand" href="#"><h1><span style="color: blue;">W</span><span style="color: orange;">W</span><span style="color: red;">M</span><span style="color: green;">T</span></h1></a>
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+    <div class="collapse navbar-collapse" id="navbarSupportedContent">
+      <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+        <li class="nav-item">
+          <a class="nav-link active" aria-current="page" href="#">Home</a>
+        </li>
+        <li class="nav-item dropdown">
+          <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+            Account
+          </a>
+          <ul class="dropdown-menu">
+            <li><a class="dropdown-item" href="#">Register</a></li>
+            <li><a class="dropdown-item" href="#">Log in</a></li>
+          </ul>
+        </li>
+      </ul>
+    </div>
+  </div>
+</nav>
+    <video class="demo" autoplay loop>
+        <source src="../static/7233729-uhd_2560_1080_25fps.mp4">
+    </video>
+    </body>
+</html>
