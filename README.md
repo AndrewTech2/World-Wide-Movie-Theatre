@@ -5,7 +5,7 @@ The World Wide Movie Theatre is a fully functional movie reservation web system 
 <h3>Features</h3>
 <ul>
     <li>Registration system: Users can register an user account or an administrator account. The administrator account has additional privileges, such as managing movie running time slots.</li>
-    <li>Movie selection: Users can select a film to watch at a fixed point in time managed by an administrator. Subsequently, they must pick their spots (if available) and pay the sum. Users may also filter by genre.</li>
+    <li>Movie selection: Users can select a film to watch at a fixed point in time managed by an administrator. Subsequently, they must pick their spots (if available) and pay the sum. Users may also filter by genre or rating.</li>
     <li>Movie time slots management: Administrators can add movie time slots, edit them or remove them.</li>
     <li>Automated user annoucements: Should a movie's details be modified, the users who have paid the full price for securing a dedicated ticket will be urgently notified by e-mail.</li>
     <li>Refund system: Users can have their sum refunded immediately.</li>  

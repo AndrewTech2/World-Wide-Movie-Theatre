@@ -1,0 +1,25 @@
+{% extends "layout_not_registered.html" %}
+
+{% block title %}
+Home
+{% endblock %}
+
+{% block content %}
+
+<div class="container col-xxl-8 px-4 py-5">
+  <div class="row flex-lg-row-reverse align-items-center g-5 py-5">
+    <div class="col-10 col-sm-8 col-lg-6"> <video autoplay loop class="d-block mx-lg-auto img-fluid"
+        alt="World Wide Movie Theatre demo" width="700" height="600" loading="lazy" style="border-radius: 10px; box-shadow: 5px orange;">
+      <source src="../static/7233729-uhd_2560_1080_25fps.mp4">
+      </video> </div>
+    <div class="col-lg-6">
+      <h1 class="display-5 fw-bold text-body-emphasis lh-1 mb-3">World Wide Movie Theatre.</h1>
+      <p class="lead">Watch movies at theatres from all around the globe effortlessly. Pick your title, purchase the ticket and enjoy!</p>
+      <div class="d-grid gap-2 d-md-flex justify-content-md-start"> <a href="/register" type="button"
+          class="btn btn-primary btn-lg px-4 me-md-2">Register</a> <a href="/login" type="button"
+          class="btn btn-outline-secondary btn-lg px-4">Login</a> </div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}

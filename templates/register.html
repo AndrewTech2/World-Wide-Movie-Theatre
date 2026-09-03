@@ -1,0 +1,29 @@
+{% extends "layout_not_registered.html" %}
+
+{% block title %}
+Register
+{% endblock %}
+
+{% block content %}
+<div class="container form-container register-form">
+    <div class="alert alert-danger" style="opacity: 0%;">
+        
+    </div>
+    <h1>Register</h1>
+    <form method="post" action="/register">
+        <div>
+            <label for="username" class="form-label">Username</label>
+            <input required type="text" class="form-control" autocomplete="off" id="username" name="username" required>
+        </div>
+        <div>
+            <label for="email" class="form-label">Email</label>
+            <input required type="email" class="form-control" autocomplete="off" id="email" name="email" required>
+        </div>
+        <div>
+            <label for="password" class="form-label">Password</label>
+            <input required type="password" class="form-control" autocomplete="off" id="password" name="password" required>
+        </div>
+        <button type="submit" class="btn btn-success btn-submit">Register</button>
+    </form>
+</div>
+{% endblock %}

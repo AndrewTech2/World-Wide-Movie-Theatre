@@ -1,19 +1,7 @@
-.demo {
-    width: 100vw;
-    z-index: 0;
+.alert-danger {
+    margin-top: 5vh;
 }
-.demo-text {
-    z-index: 1;
-    position: absolute;
-    margin-top: 50vh;
-    color: white;
-    margin-left: 2vw;
-}
-.login-link, .register-link {
-    position: absolute;
-    margin-top: 60vh;
-    margin-left: 35vw;
-}
-.register-link {
-    margin-left: 60vw;
+
+.btn-submit {
+    margin-top: 2vh;
 }

@@ -1,45 +1,101 @@
 <!DOCTYPE html>
 <html lang="en">
-    <head>
-        <link rel="stylesheet" href="../static/styles.css">
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>WWMT - {% block title %} {% endblock %}</title>
 
-        <!-- Bootstrap 5 integration -->
-        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB" crossorigin="anonymous">
-        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js" integrity="sha384-FKyoEForCGlyvwx9Hj09JcYn3nv7wiPVlz7YYwJrWVcXK/BmnVDxM+D2scQbITxI" crossorigin="anonymous"></script>
-    </head>
-    <body>
-        <h1 class="demo-text">The world's movie theatre. Purchase tickets from all around the globe effortlessly.</h1>
-        <a class="btn-primary btn register-link" href="/register">Register</a>
-        <a class="btn-secondary btn login-link" href="/login">Login</a>
-        <nav class="navbar navbar-expand-lg bg-body-tertiary">
-  <div class="container-fluid">
-    <a class="navbar-brand" href="#"><h1><span style="color: blue;">W</span><span style="color: orange;">W</span><span style="color: red;">M</span><span style="color: green;">T</span></h1></a>
-    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
-      <span class="navbar-toggler-icon"></span>
-    </button>
-    <div class="collapse navbar-collapse" id="navbarSupportedContent">
-      <ul class="navbar-nav me-auto mb-2 mb-lg-0">
-        <li class="nav-item">
-          <a class="nav-link active" aria-current="page" href="#">Home</a>
-        </li>
-        <li class="nav-item dropdown">
-          <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-            Account
-          </a>
-          <ul class="dropdown-menu">
-            <li><a class="dropdown-item" href="#">Register</a></li>
-            <li><a class="dropdown-item" href="#">Log in</a></li>
-          </ul>
-        </li>
-      </ul>
+<head>
+  <link rel="stylesheet" href="../static/styles.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WWMT - {% block title %} {% endblock %}</title>
+
+  <!-- Bootstrap 5 integration -->
+  <link href="https://cdn.jsdelivr.net/npm/bootswatch@5.3.3/dist/lux/bootstrap.min.css" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"
+    integrity="sha384-FKyoEForCGlyvwx9Hj09JcYn3nv7wiPVlz7YYwJrWVcXK/BmnVDxM+D2scQbITxI"
+    crossorigin="anonymous"></script>
+  <script>
+    function alert_message(msg, msg_id) {
+      document.querySelector(".alert-danger").style.opacity = 1;
+      if (!document.querySelector(".alert-danger").innerHTML.includes(msg_id)) {
+        document.querySelector(".alert-danger").innerHTML += `<p id="${msg_id}">${msg}</p>`;
+      }
+    }
+    function hide_alert() {
+      document.querySelector(".alert-danger").style.opacity = 0;
+    }
+    function remove_message(msg_id) {
+      if (document.querySelector(".alert-danger").innerHTML.includes(msg_id)) {
+        document.querySelector(".alert-danger").removeChild(document.querySelector(`#${msg_id}`));
+      }
+      if (document.querySelector(".alert-danger").children.length == 0) {
+        hide_alert();
+      }
+    }
+    document.addEventListener("DOMContentLoaded", function () {
+      if (document.querySelector(".register-form") || document.querySelector(".login-form")) {
+        let fields = [{ 'name': 'email', 'length': 254 }, { 'name': 'password', 'length': 50 }];
+        if (document.querySelector(".register-form")) {
+          fields.push({ 'name': 'username', 'length': 20 });
+        }
+        for (let field of fields) {
+          document.querySelector(`#${field['name']}`).addEventListener("keyup", function () {
+            let input = document.querySelector(`#${field['name']}`).value;
+            if (input.length > field['length']) {
+              alert_message(`${field['name']} length should not exceed ${field['length']} characters.`, `${field['name']}-length`);
+              document.querySelector(".btn-submit").disabled = true;
+            }
+            else {
+              document.querySelector(".btn-submit").disabled = false;
+              remove_message(`${field['name']}-length`);
+            }
+
+          });
+        }
+        document.querySelector("#password").addEventListener("keyup", function () {
+          if (document.querySelector("#password").value.length < 8) {
+            alert_message('Password field should include 8 characters at least', "password-insufficient");
+            document.querySelector(".btn-submit").disabled = true;
+          }
+          else {
+            remove_message("password-insufficient");
+            document.querySelector(".btn-submit").disabled = false;
+          }
+        });
+      }
+    });
+  </script>
+</head>
+
+<body>
+  <nav class="navbar navbar-expand-lg bg-body-tertiary">
+    <div class="container-fluid">
+      <a class="navbar-brand" href="/">
+        <h1><span style="color: blue;">W</span><span style="color: orange;">W</span><span
+            style="color: red;">M</span><span style="color: green;">T</span></h1>
+      </a>
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent"
+        aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navbarSupportedContent">
+        <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+          <li class="nav-item">
+            <a class="nav-link active" aria-current="page" href="/">Home</a>
+          </li>
+          <li class="nav-item dropdown">
+            <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+              Account
+            </a>
+            <ul class="dropdown-menu">
+              <li><a class="dropdown-item" href="/register">Register</a></li>
+              <li><a class="dropdown-item" href="/login">Log in</a></li>
+            </ul>
+          </li>
+        </ul>
+      </div>
     </div>
-  </div>
-</nav>
-    <video class="demo" autoplay loop>
-        <source src="../static/7233729-uhd_2560_1080_25fps.mp4">
-    </video>
-    </body>
+  </nav>
+  {% block content %}
+  {% endblock %}
+</body>
+
 </html>
