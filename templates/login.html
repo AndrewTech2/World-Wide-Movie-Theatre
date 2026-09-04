@@ -1,0 +1,21 @@
+{% extends "layout_not_registered.html" %}
+
+{% block title %}
+Login 
+{% endblock %}
+
+{% block content %}
+<div class="container login-form">
+    <div class="alert alert-danger" style="opacity: 0;">
+
+    </div>
+    <h1>Login</h1>
+    <form method="post" action="/login">
+        <label class="form-label" for="email">Email</label>
+        <input class="form-control" autcomplete="off" type="email" name="email" id="email" required>
+        <label class="form-label" for="password">Password</label>
+        <input class="form-control" type="password" autcomplete='off' name="password" id="password" required>
+        <button class="btn btn-success btn-submit" type="submit">Login</button>
+    </form>
+</div>
+{% endblock %}
