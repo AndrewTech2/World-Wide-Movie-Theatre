@@ -1,4 +1,8 @@
+{% if login %}
+{% extends "layout_registered.html" %}
+{% else %}
 {% extends "layout_not_registered.html" %}
+{% endif %}
 
 {% block title %}
     Login

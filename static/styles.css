@@ -9,3 +9,25 @@
 .card {
     text-align: center;
 }
+
+.header {
+    margin-bottom: 5vh;
+    margin-top: 2vh;
+}
+
+button[type="submit"] {
+    margin-top: 1vh;
+    margin-left: 1vh;
+}
+
+.add-form {
+    text-align: center;
+}
+
+.btn {
+    border-radius: 30px;
+}
+
+a:hover {
+    text-decoration: underline double;
+}
