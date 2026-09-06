@@ -1,0 +1,54 @@
+{% extends "layout_registered.html" %}
+
+{% block title %}
+{{ movie[1] }}
+{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+  <div class="d-flex flex-row flex-wrap">
+    <div class="d-flex col-md-6">
+      <div class="card mb-3">
+        <h3 class="card-header">{{ movie[1] }}</h3>
+        <div class="card-body">
+          <h5 class="card-title">Directed by <strong>{{ movie[6] }}</strong></h5>
+        </div>
+        <div class="d-flex justify-content-center">
+          <img src="{{ movie[3] }}" class="d-block user-select-none" focusable="false" role="img"
+            preserveAspectRatio="xMidYMid slice" viewBox="0 0 318 180"
+            style="font-size:1.125rem;text-anchor:middle; max-width: 220px;">
+        </div>
+        <div class="card-body">
+          <p class="card-text">{{ movie[2] }}</p>
+        </div>
+        <ul class="list-group list-group-flush">
+          <li class="list-group-item">Genre(s): <strong>{{ movie[8] }}</strong></li>
+          <li class="list-group-item">Age rating: <strong>{{ movie[5] }}</strong></li>
+          <li class="list-group-item">User rating: <strong>{{ movie[4] }}/10</strong></li>
+          <li class="list-group-item">Release date: <strong>{{ movie[7] }}</strong></li>
+          <li class="list-group-item">WWMT ID: <strong>{{ movie[0] }}</strong></li>
+          <li class="list-group-item">IMDb link: <strong><a href="https://imdb.com/title/{{ movie[9] }}"
+                target="_blank">Link</a></strong></li>
+        </ul>
+      </div>
+    </div>
+    <div class="col-md-6 d-flex flex-wrap flex-column align-items-center">
+    {% for showtime in showtimes %}
+    <div class="card bg-light mb-3" style="max-width: 20rem;">
+      <p class="card-header">WWMT ID: <strong>{{ showtime[1] }}</strong></p>
+      <div class="card-body">
+        <h4 class="card-title">{{ showtime[8] }}</h4>
+        <p class="card-text">Date and time: <strong>{{ showtime[3][:-3] }}</strong></p>
+        <p class="card-text">Location: <strong>{{ showtime[4] }}</strong></p>
+        <form action="/buy" method="get">
+          <input type="hidden" value="{{ showtime[0] }}">
+          <button type="submit" class="btn btn-success">Purchase tickets</button>
+        </form>
+      </div>
+    </div>
+  {% endfor %}
+</div>
+  </div>
+  
+</div>
+{% endblock %}

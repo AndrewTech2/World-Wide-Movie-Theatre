@@ -27,3 +27,7 @@ button[type="submit"] {
 .btn {
     border-radius: 30px;
 }
+
+.container {
+    margin-top: 2vh;
+}

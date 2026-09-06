@@ -57,12 +57,6 @@ def get_credentials(id):
         return None
     return (record[4], record[1])
 
-@app.template_filter('limit')
-def limit(description):
-    if len(description) > 400:
-        return description[:401] + "..."
-    return description
-
 @app.route("/", methods=['GET'])
 def index():
     if session.get("user_id"):
@@ -288,3 +282,23 @@ def reset_password():
         return render_template("success.html", user=user, username=username, login=True, message="Password changed!")
     else:
         return render_template("change_password.html", user=user, username=username)
+
+@app.route("/movie", methods=['GET'])
+@login_required
+def movie():
+    # Get user credentials
+    conn = sqlite3.connect("wwmt.db")
+    curr = conn.cursor()
+    credentials = get_credentials(session.get('user_id'))
+    if not credentials:
+        return redirect("/")
+    user = credentials[0]
+    username = credentials[1]
+    if not request.args.get("id"):
+        return render_template("error.html", error="No ID supplied.", user=user, username=username, login=True)
+    movie = curr.execute("SELECT * FROM movies WHERE id=?", (request.args.get("id"),)).fetchone()
+    if not movie:
+        return render_template("error.html", error="Movie not found.", user=user, username=username, login=True)
+    showtimes = curr.execute("SELECT * FROM showtimes, movies WHERE movie_id=? AND movie_id = movies.id", (movie[0],)).fetchall()
+    return render_template("movie.html", movie=movie, user=user, username=username, showtimes=showtimes)
+
