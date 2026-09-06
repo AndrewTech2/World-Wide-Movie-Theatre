@@ -1,15 +1,19 @@
 from functools import wraps
-
+from dotenv import load_dotenv
+import os
 from flask import Flask, redirect, render_template, session, request
 from flask_session import Session
-import sqlite3, re, werkzeug.security, datetime, requests
+import sqlite3, re, werkzeug.security, datetime, requests, smtplib, ssl
 
 # Initialize application
 app = Flask(__name__)
 
 # Define constants
 USER_TYPES = ['admin', 'user']
-OMDB_API = "d220b5ff"
+load_dotenv()
+OMDB_API = os.getenv("OMDB_API")
+APP_PASSWORD = os.getenv("GMAIL_APP_PASSWORD")
+GMAIL_PASSWORD = os.getenv("GMAIL_PASSWORD")
 
 # Configure session cookies 
 app.secret_key = b'\xc7\xf8E\x8a\xa4\xb7\xa4\x90'
@@ -207,9 +211,10 @@ def add_movie():
     if record:
         return render_template("error.html", error=f"Movie already exists!", login=True, user=user, username=username)
     curr.execute("INSERT INTO movies (title, overview, poster, rating, age_rating, director, release, genre, imdb_id) VALUES (?,?,?,?,?,?,?,?,?)", (response_text['Title'], response_text['Plot'], response_text['Poster'], int(float(response_text['Ratings'][0]['Value'].split("/")[0])), response_text['Rated'], response_text['Director'], response_text['Released'], response_text['Genre'], response_text['imdbID'],))
+    wwmt_id = curr.execute("SELECT * FROM movies WHERE imdb_id=?", (response_text['imdbID'],)).fetchone()[0]
     conn.commit()
     conn.close()
-    return redirect("/")
+    return redirect(f"/movie?id={wwmt_id}")
 
 @login_required
 @admin_required
@@ -255,3 +260,31 @@ def showtimes():
         conn.commit()
         conn.close()
         return render_template("showtimes.html", user=user, username=username, all_showtimes=all_showtimes)
+
+@login_required
+@app.route("/change_password", methods=['GET', 'POST'])
+def reset_password():
+    # Get user credentials
+    conn = sqlite3.connect("wwmt.db")
+    curr = conn.cursor()
+    credentials = get_credentials(session.get('user_id'))
+    if not credentials:
+        return redirect("/")
+    user = credentials[0]
+    username = credentials[1]
+    if request.method == "POST":
+        if '' in [request.form.get(field) for field in request.form]:
+            return render_template("error.html", error="Please fill out all forms.", user=user, username=username, login=True)
+        old_password = request.form.get("old")
+        if request.form.get("new") != request.form.get("confirmation"):
+            return render_template("error.html", error="Passwords do not match.", user=user, username=username, login=True)
+        hsh = curr.execute("SELECT * FROM users WHERE id=?", (session.get("user_id"),)).fetchone()[3]
+        if not werkzeug.security.check_password_hash(hsh, old_password):
+            return render_template("error.html", error="Incorrect password.", user=user, username=username, login=True)
+        new_hsh = werkzeug.security.generate_password_hash(request.form.get("new"))
+        curr.execute("UPDATE users SET password=? WHERE id=?", (new_hsh, session.get("user_id"),))
+        conn.commit()
+        conn.close()
+        return render_template("success.html", user=user, username=username, login=True, message="Password changed!")
+    else:
+        return render_template("change_password.html", user=user, username=username)

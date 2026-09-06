@@ -1,0 +1,15 @@
+{% if login %}
+{% extends "layout_registered.html" %}
+{% else %}
+{% extends "layout_not_registered.html" %}
+{% endif %}
+
+{% block title %}
+    Login
+{% endblock %}
+
+{% block content %}
+<div class="alert alert-success">
+  <h3>{{ message }}</h3>
+</div>
+{% endblock %}
