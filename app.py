@@ -210,3 +210,48 @@ def add_movie():
     conn.commit()
     conn.close()
     return redirect("/")
+
+@login_required
+@admin_required
+@app.route("/showtimes", methods=['GET', 'POST'])
+def showtimes():
+    # Get user credentials
+    credentials = get_credentials(session.get('user_id'))
+    if not credentials:
+        return redirect("/")
+    user = credentials[0]
+    username = credentials[1]
+    if request.method == "POST":
+        # Validate the submitted showtime before writing it to the database.
+        if '' in [request.form.get(field) for field in request.form]:
+            return render_template("error.html", error="Please fill out all fields.", user=user, username=username, login=True)
+        if "T" not in request.form.get("datetime"):
+            return render_template("error.html", error="Error whilst processing datetime field.", user=user, username=username, login=True)
+        today = datetime.datetime.now()
+        try:
+            datetime_input = datetime.datetime.strptime(request.form.get("datetime").replace("T", " "), "%Y-%m-%d %H:%M")
+        except:
+            return render_template("error.html", error="Error whilst processing datetime field.", user=user, username=username, login=True)
+        if today > datetime_input:
+            return render_template("error.html", error="Please ensure the movie runs in the future.", user=user, username=username, login=True)
+        conn = sqlite3.connect("wwmt.db")
+        curr = conn.cursor()
+        # Confirm that the selected movie exists before creating its showtime.
+        record = curr.execute("SELECT * FROM movies WHERE id=?", (request.form.get("movie_id"),)).fetchone()
+        if not record:
+            return render_template("error.html", error="Movie does not exist!", user=user, username=username, login=True)
+        runtime = datetime.datetime.strftime(datetime_input, "%Y-%m-%d %H:%M:00")
+        # Store the new showtime and redirect to its detail page.
+        curr.execute("INSERT INTO showtimes (movie_id, user_id, runtime, location) VALUES (?, ?, ?, ?)", (request.form.get("movie_id"), session.get("user_id"), runtime, request.form.get("location"),))
+        showtime_id = curr.execute("SELECT * FROM showtimes WHERE user_id=? ORDER BY id DESC", (session.get('user_id'),)).fetchall()[0][0]
+        conn.commit()
+        conn.close()
+        return redirect(f'/showtime?id={showtime_id}')
+    else:
+        # Load the signed-in user's showtimes together with their movie details.
+        conn = sqlite3.connect("wwmt.db")
+        curr = conn.cursor()
+        all_showtimes = curr.execute("SELECT * FROM showtimes, movies WHERE showtimes.user_id=? AND movie_id = movies.id ORDER BY showtimes.id DESC", (session.get("user_id"),)).fetchall()
+        conn.commit()
+        conn.close()
+        return render_template("showtimes.html", user=user, username=username, all_showtimes=all_showtimes)

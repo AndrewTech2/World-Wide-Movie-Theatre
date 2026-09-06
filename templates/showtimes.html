@@ -1,1 +1,39 @@
-{% extends "layout_not_registered.html" %}
+{% extends "layout_registered.html" %}
+
+{% block title %}
+Showtimes
+{% endblock %}
+
+{% block content %}
+<div class="container mt-3 d-flex flex-wrap justify-content-center">
+    <div class="col-xl-6 align-text-center d-flex flex-column align-items-center justify-content-center">
+        {% if all_showtimes %}
+        <h1>All showtimes</h1>
+        {% else %}
+        <h1>No showtimes to show</h1>
+        {% endif %}
+        {% for showtime in all_showtimes %}
+        <div class="card bg-light mb-3" style="max-width: 20rem;">
+        <p class="card-header">WWMT ID: <strong>{{ showtime[1] }}</strong></p>
+        <div class="card-body">
+            <h4 class="card-title">{{ showtime[6] }}</h4>
+            <p class="card-text">Date and time: <strong>{{ showtime[3] }}</strong></p>
+            <p class="card-text">Location: <strong>{{ showtime[4] }}</strong></p>
+            <a href="/manage_showtime?id={{ showtime[0] }}" class="card-link">Manage showtime</a>
+            <br>
+            <a href="/statistics?id={{ showtime[0] }}" class="card-link">View statistics</a>
+        </div>
+        </div>
+        {% endfor %}
+    </div>
+    <div class="col-xl-6 align-text-center">
+        <h1>Allocate a showtime</h1>
+        <form method="post" action="/showtimes">
+            <input required autocomplete="off" class="form-control" type="number" min="1" name="movie_id" placeholder="Movie WWMT ID (Check movie page)">
+            <input required autocomplete='off' class="form-control mt-2" type="datetime-local" name="datetime">
+            <input required autocomplete="off" class="form-control mt-2" type="text" name="location" placeholder="Location of venue">
+            <button type="submit" class="btn btn-success">Submit showtime</button>
+        </form>
+    </div>
+</div>
+{% endblock %}

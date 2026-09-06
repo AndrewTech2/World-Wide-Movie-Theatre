@@ -20,14 +20,10 @@ button[type="submit"] {
     margin-left: 1vh;
 }
 
-.add-form {
+.align-text-center {
     text-align: center;
 }
 
 .btn {
     border-radius: 30px;
-}
-
-a:hover {
-    text-decoration: underline double;
 }

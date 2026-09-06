@@ -30,6 +30,8 @@
     <li class="list-group-item">Age rating: <strong>{{ movie[5] }}</strong></li>
     <li class="list-group-item">User rating: <strong>{{ movie[4] }}/10</strong></li>
     <li class="list-group-item">Release date: <strong>{{ movie[7] }}</strong></li>
+    <li class="list-group-item">WWMT ID: <strong>{{ movie[0] }}</strong></li>
+    <li class="list-group-item">IMDb link: <strong><a href="https://imdb.com/title/{{ movie[9] }}" target="_blank">Link</a></strong></li>
   </ul>
   <div class="card-body">
     <a href="/movie?id={{ movie[0] }}" class="card-link">Visit page</a>
