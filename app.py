@@ -454,5 +454,37 @@ def tickets():
         return redirect("/")
     user = credentials[0]
     username = credentials[1]
-    tickets = curr.execute("SELECT * FROM tickets, showtimes, movies, users WHERE tickets.user_id=? AND tickets.showtime_id = showtimes.id AND showtimes.movie_id = movies.id AND tickets.user_id = users.id", (session.get("user_id"),))
+    tickets = curr.execute("SELECT * FROM tickets, showtimes, movies, users WHERE tickets.user_id=? AND tickets.showtime_id = showtimes.id AND showtimes.movie_id = movies.id AND tickets.user_id = users.id", (session.get("user_id"),)).fetchall()
+    conn.commit()
+    conn.close()
     return render_template("tickets.html", user=user, username=username, tickets=tickets)
+
+@login_required
+@app.route("/refund", methods=['POST'])
+def refund():
+    # Get user credentials
+    conn = sqlite3.connect("wwmt.db")
+    curr = conn.cursor()
+    credentials = get_credentials(session.get('user_id'))
+    if not credentials:
+        return redirect("/")
+    user = credentials[0]
+    username = credentials[1]
+    if request.method == "POST":
+        if not request.form.get("ticket_id"):
+            return render_template("error.html", error="No ticket ID provided!", user=user, login=True, username=username)
+        ticket = curr.execute("SELECT * FROM tickets, showtimes, movies, users WHERE tickets.id=? AND tickets.showtime_id = showtimes.id AND showtimes.movie_id = movies.id AND tickets.user_id = users.id", (request.form.get("ticket_id"),)).fetchone()
+        if not ticket:
+            return render_template("error.html", error="Invalid ticket ID.", user=user, login=True, username=username)
+        if ticket[1] != session.get("user_id"):
+            return render_template("error.html", error="Ticket ID does not match user ID.", user=user, login=True, username=username)
+        price = int(ticket[3])
+        revenue = int(ticket[12])
+        capacity = int(ticket[13])
+        capacity += 1
+        revenue -= price
+        curr.execute("UPDATE showtimes SET revenue=?, capacity=? WHERE showtimes.id=?", (revenue, capacity, ticket[2]))
+        curr.execute("DELETE FROM tickets WHERE id=?", (request.form.get("ticket_id"),))
+        conn.commit()
+        conn.close()
+        return render_template("success.html", message=f"Successfully refunded ${price}.", login=True, user=user, username=username)
