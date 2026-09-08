@@ -31,3 +31,16 @@ button[type="submit"] {
 .container {
     margin-top: 2vh;
 }
+
+.align-text-right {
+    text-align: right;
+}
+
+.seating td {
+    border: 1px solid gray;
+    height: -50px;
+}
+
+.seating td input {
+    transform: scale(4.0);
+}

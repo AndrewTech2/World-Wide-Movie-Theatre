@@ -17,11 +17,13 @@ Showtimes
         <p class="card-header">WWMT ID: <strong>{{ showtime[1] }}</strong></p>
         <div class="card-body">
             <h4 class="card-title">{{ showtime[8] }}</h4>
-            <p class="card-text">Date and time: <strong>{{ showtime[3] }}</strong></p>
+            <p class="card-text">Date and time: <strong>{{ showtime[3][:-3] }}</strong></p>
             <p class="card-text">Location: <strong>{{ showtime[4] }}</strong></p>
             <a href="/manage_showtime?id={{ showtime[0] }}" class="card-link">Manage showtime</a>
             <br>
             <a href="/statistics?id={{ showtime[0] }}" class="card-link">View statistics</a>
+            <br>
+            <a href="/delete?id={{ showtime }}&type=showtime" class="card-link">Delete showtime</a>
         </div>
         </div>
         {% endfor %}

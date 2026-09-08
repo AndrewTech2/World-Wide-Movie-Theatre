@@ -52,8 +52,9 @@
               <li><a class="dropdown-item" href="/change_password">Change password</a></li>
             </ul>
           </li>
-          <li class="nav-item"><form class="d-flex" role="search">
-      <input class="form-control me-2" type="search" placeholder="Search" aria-label="Search"/>
+          <li class="nav-item"><form class="d-flex" role="search" action="/search" method="get">
+      <input class="form-control me-2" type="search" placeholder="Search" autocomplete="off" name="query" aria-label="Search"/>
+      <input class="form-control me-2" type="search" placeholder="Filter by genre" name="genre" autocomplete="off">
       <button class="btn btn-primary" type="submit">Search</button>
         </form></li>
         </ul>

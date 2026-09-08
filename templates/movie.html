@@ -24,7 +24,11 @@
         <ul class="list-group list-group-flush">
           <li class="list-group-item">Genre(s): <strong>{{ movie[8] }}</strong></li>
           <li class="list-group-item">Age rating: <strong>{{ movie[5] }}</strong></li>
+          {% if movie[4] %}
           <li class="list-group-item">User rating: <strong>{{ movie[4] }}/10</strong></li>
+          {% else %}
+          <li class="list-group-item">User rating: <strong>N/A</strong></li>
+          {% endif %}
           <li class="list-group-item">Release date: <strong>{{ movie[7] }}</strong></li>
           <li class="list-group-item">WWMT ID: <strong>{{ movie[0] }}</strong></li>
           <li class="list-group-item">IMDb link: <strong><a href="https://imdb.com/title/{{ movie[9] }}"
@@ -41,7 +45,7 @@
         <p class="card-text">Date and time: <strong>{{ showtime[3][:-3] }}</strong></p>
         <p class="card-text">Location: <strong>{{ showtime[4] }}</strong></p>
         <form action="/buy" method="get">
-          <input type="hidden" value="{{ showtime[0] }}">
+          <input type="hidden" name="id" value="{{ showtime[0] }}">
           <button type="submit" class="btn btn-success">Purchase tickets</button>
         </form>
       </div>

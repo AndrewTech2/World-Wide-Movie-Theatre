@@ -3,6 +3,7 @@ from dotenv import load_dotenv
 import os
 from flask import Flask, redirect, render_template, session, request
 from flask_session import Session
+from string import ascii_lowercase
 import sqlite3, re, werkzeug.security, datetime, requests, smtplib, ssl
 
 # Initialize application
@@ -14,6 +15,9 @@ load_dotenv()
 OMDB_API = os.getenv("OMDB_API")
 APP_PASSWORD = os.getenv("GMAIL_APP_PASSWORD")
 GMAIL_PASSWORD = os.getenv("GMAIL_PASSWORD")
+TICKET_PRICES = {'adult': 15, 'child': 10, 'senior': 10}
+TICKET_TYPES = {'adult': 'adults', 'child': 'children', 'senior': 'seniors'}
+TICKET_TYPES_PLURAL = {'adults': 'adult', 'children': 'child', 'seniors': 'senior'}
 
 # Configure session cookies 
 app.secret_key = b'\xc7\xf8E\x8a\xa4\xb7\xa4\x90'
@@ -70,17 +74,17 @@ def index():
         username = credentials[1]
         # Define offset
         offset = 0
+        page = 1
         if request.args.get("page"):
             try:
                 page = int(request.args.get("page"))
             except ValueError:
-                page = 0
+                page = 1
             if page < 0:
-                page = 0
-            offset = 10 * page
+                page = 1
+            offset = 10 * (page - 1)
         movies = curr.execute("SELECT * FROM movies LIMIT 10 OFFSET ?", (offset,)).fetchall()
-        
-        return render_template("movies.html", user=user, username=username, movies=movies, title="Home")
+        return render_template("movies.html", user=user, username=username, movies=movies, title="Home", page=page)
     else:
         return render_template("landing_page.html")
 
@@ -165,7 +169,10 @@ def add():
         if '' in [request.form.get(field) for field in request.form]:
             return render_template("error.html", error="Invalid input.", login=True, user=user, username=username)
         # Use OMDb API to get movie details
-        response = requests.get("http://www.omdbapi.com", params={'apikey': OMDB_API, 's': request.form.get("title"), 'type': 'movie'})
+        try:
+            response = requests.get("http://www.omdbapi.com", params={'apikey': OMDB_API, 's': request.form.get("title"), 'type': 'movie'})
+        except:
+            return render_template("error.html", error="Error using external API server. Please try again later.", login=True, user=user, username=username)
         # If GET request is unsuccessful, return error
         if response.status_code != 200:
             return render_template("error.html", error="Error using external API server. Please try again later.", login=True, user=user, username=username)
@@ -204,7 +211,14 @@ def add_movie():
     record = curr.execute("SELECT * FROM movies WHERE imdb_id=?", (request.form.get("imdb_id"),)).fetchone()
     if record:
         return render_template("error.html", error=f"Movie already exists!", login=True, user=user, username=username)
-    curr.execute("INSERT INTO movies (title, overview, poster, rating, age_rating, director, release, genre, imdb_id) VALUES (?,?,?,?,?,?,?,?,?)", (response_text['Title'], response_text['Plot'], response_text['Poster'], int(float(response_text['Ratings'][0]['Value'].split("/")[0])), response_text['Rated'], response_text['Director'], response_text['Released'], response_text['Genre'], response_text['imdbID'],))
+    try:
+        rating = int(round(float(response_text['Ratings'][0]['Value'].split("/")[0]), 0))
+    except:
+        rating = None
+    if rating:
+        curr.execute("INSERT INTO movies (title, overview, poster, rating, age_rating, director, release, genre, imdb_id) VALUES (?,?,?,?,?,?,?,?,?)", (response_text['Title'], response_text['Plot'], response_text['Poster'], rating, response_text['Rated'], response_text['Director'], response_text['Released'], response_text['Genre'], response_text['imdbID'],))
+    else:
+        curr.execute("INSERT INTO movies (title, overview, poster, age_rating, director, release, genre, imdb_id) VALUES (?,?,?,?,?,?,?,?)", (response_text['Title'], response_text['Plot'], response_text['Poster'], response_text['Rated'], response_text['Director'], response_text['Released'], response_text['Genre'], response_text['imdbID'],))
     wwmt_id = curr.execute("SELECT * FROM movies WHERE imdb_id=?", (response_text['imdbID'],)).fetchone()[0]
     conn.commit()
     conn.close()
@@ -245,7 +259,7 @@ def showtimes():
         showtime_id = curr.execute("SELECT * FROM showtimes WHERE user_id=? ORDER BY id DESC", (session.get('user_id'),)).fetchall()[0][0]
         conn.commit()
         conn.close()
-        return redirect(f'/showtime?id={showtime_id}')
+        return redirect(f'/manage_showtime?id={showtime_id}')
     else:
         # Load the signed-in user's showtimes together with their movie details.
         conn = sqlite3.connect("wwmt.db")
@@ -281,6 +295,8 @@ def reset_password():
         conn.close()
         return render_template("success.html", user=user, username=username, login=True, message="Password changed!")
     else:
+        conn.commit()
+        conn.close()
         return render_template("change_password.html", user=user, username=username)
 
 @app.route("/movie", methods=['GET'])
@@ -300,5 +316,121 @@ def movie():
     if not movie:
         return render_template("error.html", error="Movie not found.", user=user, username=username, login=True)
     showtimes = curr.execute("SELECT * FROM showtimes, movies WHERE movie_id=? AND movie_id = movies.id", (movie[0],)).fetchall()
+    conn.commit()
+    conn.close()
     return render_template("movie.html", movie=movie, user=user, username=username, showtimes=showtimes)
 
+@login_required
+@app.route("/search", methods=['GET'])
+def search():
+    # Get user credentials
+    credentials = get_credentials(session.get('user_id'))
+    if not credentials:
+        return redirect("/")
+    user = credentials[0]
+    username = credentials[1]
+    page = 1
+    try:
+        page = int(request.args.get("page"))
+    except:
+        page = 1
+    offset = 10 * (page - 1)
+    conn = sqlite3.connect("wwmt.db")
+    curr = conn.cursor()
+    query = request.args.get("query")
+    genre = request.args.get("genre")
+    if genre and query:
+        movies = curr.execute("SELECT * FROM movies WHERE title LIKE ? AND genre LIKE ?", ("%" + query + "%", "%" + genre + "%",)).fetchall()
+    elif genre:
+        movies = curr.execute("SELECT * FROM movies WHERE genre LIKE ?", ("%" + genre + "%",)).fetchall()
+    elif query:
+        movies = curr.execute("SELECT * FROM movies WHERE title LIKE ?", ("%" + query + "%",)).fetchall()
+    else:
+        movies = curr.execute("SELECT * FROM movies").fetchall()
+    conn.commit()
+    conn.close()
+    return render_template("movies.html", user=user, username=username, movies=movies, title="Search", page=page)
+
+@login_required
+@app.route("/buy", methods=['POST', 'GET'])
+def buy():
+    # Get user credentials
+    conn = sqlite3.connect("wwmt.db")
+    curr = conn.cursor()
+    credentials = get_credentials(session.get('user_id'))
+    if not credentials:
+        return redirect("/")
+    user = credentials[0]
+    username = credentials[1]
+    if request.method == "POST":
+        if '' in [request.form.get(field) for field in request.form]:
+            return render_template("error.html", error="Please ensure you fill out all fields.", login=True, user=user, username=username)
+        try:
+            tickets = [{'type': field, 'number': int(request.form.get(field))} for field in list(dict(request.form).keys())[:3]]
+        except:
+            return render_template("error.html", error="Please ensure number fields contain a number.", login=True, user=user, username=username)
+        ok = False
+        for ticket in tickets:
+            if ticket['number'] != 0:
+                ok = True
+                break
+        if not ok:
+            return render_template("error.html", error="Please purchase a ticket at the bare minimum.", login=True, user=user, username=username)
+        tickets_dict = {}
+        for ticket in tickets:
+            tickets_dict[ticket['type']] = ticket['number']
+        if not request.form.get("showtime_id"):
+            # "Please do not FUCKING interfere with the pre-established hidden form fields." is what I should say, but here we are.
+            return render_template('error.html', error="Please do not interfere with the pre-established hidden form fields.", login=True, user=user, username=username)
+        seats = []
+        ok = False
+        for field in dict(request.form).keys():
+            if field.split("_")[0] == "seats":
+                ok = True
+                field_dict = {}
+                field_dict['row'] = int(field.split("_")[1])
+                field_dict['seat'] = int(field.split("_")[2])
+                seats.append(field_dict)
+        if not ok:
+            return render_template("error.html", error="Please select your spots within the movie theatre.", login=True, user=user, username=username)
+        tickets_total = 0
+        for ticket in tickets:
+            tickets_total += ticket['number']
+        if tickets_total != len(seats):
+            # Stop it. Get some help.
+            return render_template("error.html", error="Number of tickets does not match number of seats booked.", login=True, user=user, username=username)
+        record = curr.execute("SELECT * FROM showtimes WHERE showtimes.id=?", (request.form.get("showtime_id"),)).fetchall()
+        if not record:
+            return render_template("error.html", error="Invalid showtime ID.", login=True, user=user, username=username)
+        revenue = int(record[0][5])
+        capacity = int(record[0][6])
+        # Calculate new revenue, capacity 
+        for ticket_type in TICKET_PRICES.keys():
+            print(ticket_type)
+            revenue += TICKET_PRICES[ticket_type] * tickets_dict[TICKET_TYPES[ticket_type]]
+        capacity -= tickets_total
+        curr.execute("UPDATE showtimes SET revenue=?, capacity=? WHERE id=?", (revenue, capacity, request.form.get("showtime_id"),))
+        # Add tickets
+        seats_idx = 0
+        for ticket_type in tickets_dict.keys():
+            no = tickets_dict[ticket_type]
+            for _ in range(no):
+                seat = seats[seats_idx]
+                curr.execute("INSERT INTO tickets (user_id, showtime_id, price, column, seat, type) VALUES (?, ?, ?, ?, ?, ?)", (session.get("user_id"), request.form.get("showtime_id"), TICKET_PRICES[TICKET_TYPES_PLURAL[ticket_type]], seat['row'], seat['seat'], TICKET_TYPES_PLURAL[ticket_type],))
+                seats_idx += 1
+        conn.commit()
+        conn.close()
+        return redirect("/")
+    else:
+        if not request.args.get("id"):
+            return render_template("error.html", error="No showtime ID provided.", user=user, username=username, login=True)
+        record = curr.execute("SELECT * FROM showtimes, movies WHERE showtimes.id=? AND showtimes.movie_id = movies.id", (request.args.get("id"),)).fetchone()
+        if not record:
+            return render_template("error.html", error="Invalid showtime ID.", user=user, username=username, login=True)
+        tickets = curr.execute("SELECT * FROM tickets WHERE showtime_id=?", (request.args.get("id"),)).fetchall()
+        seating = [[{'seat': seat, 'row': row, 'occupied': 0} for seat in range(1, 11)] for row in range(1, 6)]
+        for ticket in tickets:
+            seating[ticket[4]-1][ticket[5]-1]['occupied'] = 1
+        conn.commit()
+        conn.close()
+        return render_template("buy.html", user=user, username=username, showtime=record, seating=seating, capacity=record[6], showtime_id = record[0])

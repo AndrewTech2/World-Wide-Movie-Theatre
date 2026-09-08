@@ -25,7 +25,11 @@
   <ul class="list-group list-group-flush">
     <li class="list-group-item">Genre(s): <strong>{{ movie[8] }}</strong></li>
     <li class="list-group-item">Age rating: <strong>{{ movie[5] }}</strong></li>
+    {% if movie[4] %}
     <li class="list-group-item">User rating: <strong>{{ movie[4] }}/10</strong></li>
+    {% else %}
+    <li class="list-group-item">User rating: <strong>N/A</strong></li>
+    {% endif %}
     <li class="list-group-item">Release date: <strong>{{ movie[7] }}</strong></li>
     <li class="list-group-item">WWMT ID: <strong>{{ movie[0] }}</strong></li>
     <li class="list-group-item">IMDb link: <strong><a href="https://imdb.com/title/{{ movie[9] }}" target="_blank">Link</a></strong></li>
@@ -59,5 +63,30 @@
 </div>
 {% endfor %}
 {% endif %}
+{% if not movies %}
+<h3 class="align-text-center">No movies to show!</h3>
+{% endif %}
+{% if title != "Add" %}
+<div class="d-flex flex-wrap flex-column align-text-right">
+  {% if title == "Home" %}
+  <form action="/" method="get">
+    <input type="hidden" name="page" value="{{ page + 1 }}">
+    <button type="submit" class="btn btn-primary">Next page</button>
+  </form>
+  {% else %}
+  <form action="/search" method="get">
+    <input type="hidden" name="page" value="{{ page + 1 }}">
+    {% if search %}
+    <input type="hidden" name="query" value="{{ query }}">
+    {% endif %}
+    {% if order %}
+    <input type="hidden" name="genre" value="{{ genre }}">
+    {% endif %}
+    <button type="submit" class="btn btn-primary">Next page</button>
+  </form>
+  {% endif %}
+</div>
+{% endif %}
+
 </div>
 {% endblock %}
