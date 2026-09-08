@@ -25,6 +25,10 @@ app.config['SESSION_TYPE'] = "filesystem"
 app.config['SESSION_PERMANENT'] = False
 Session(app)
 
+@app.template_filter("capitalize")
+def capitalize(word):
+    return word.title()
+
 def admin_required(func):
     @wraps(func)
     def wrapper(*args, **kwargs):
@@ -402,6 +406,10 @@ def buy():
         record = curr.execute("SELECT * FROM showtimes WHERE showtimes.id=?", (request.form.get("showtime_id"),)).fetchall()
         if not record:
             return render_template("error.html", error="Invalid showtime ID.", login=True, user=user, username=username)
+        # Render error if user books more than 10 tickets in total
+        user_ticket_count = curr.execute("SELECT count(id) FROM tickets WHERE user_id=? AND showtime_id=?", (session.get("user_id"),request.form.get("showtime_id"),)).fetchone()
+        if int(user_ticket_count[0]) + len(seats) > 10:
+            return render_template("error.html", error="Too many tickets (> 10) booked on a single user ID.", login=True, user=user, username=username)
         revenue = int(record[0][5])
         capacity = int(record[0][6])
         # Calculate new revenue, capacity 
@@ -434,3 +442,17 @@ def buy():
         conn.commit()
         conn.close()
         return render_template("buy.html", user=user, username=username, showtime=record, seating=seating, capacity=record[6], showtime_id = record[0])
+
+@login_required
+@app.route("/tickets", methods=['GET'])
+def tickets():
+    # Get user credentials
+    conn = sqlite3.connect("wwmt.db")
+    curr = conn.cursor()
+    credentials = get_credentials(session.get('user_id'))
+    if not credentials:
+        return redirect("/")
+    user = credentials[0]
+    username = credentials[1]
+    tickets = curr.execute("SELECT * FROM tickets, showtimes, movies, users WHERE tickets.user_id=? AND tickets.showtime_id = showtimes.id AND showtimes.movie_id = movies.id AND tickets.user_id = users.id", (session.get("user_id"),))
+    return render_template("tickets.html", user=user, username=username, tickets=tickets)

@@ -1,0 +1,31 @@
+{% extends "layout_registered.html" %}
+
+{% block title %}
+    Tickets
+{% endblock %}
+
+{% block content %}
+<div class="container d-flex justify-content-center">
+    <div class="d-flex flex-column col-md-6">
+        {% for ticket in tickets %}
+        <div class="card mt-3">
+        <h5 class="card-header">ID: {{ ticket[0] }} <br> {{ ticket[25] }}</h5>
+        <div class="card-body">
+            <h4 class="card-title">{{ ticket[6] | capitalize }} - {{ ticket[15] }}</h4>
+            <h6 class="card-subtitle mb-2 text-muted">Row: {{ ticket[4] }}; Seat: {{ ticket[5] }}</h6>
+            <ul class="list-group">
+                <li class="list-group-item"><p class="card-text">Price: <strong>${{ ticket[3] }}</strong></p></li>
+                <li class="list-group-item"><p class='card-text'>Location: <strong>{{ ticket[11] }}</strong></p></li>
+                <li class="list-group-item"><p class='card-text'>Date and time: <strong>{{ ticket[10] }}</strong></p></li>
+                <p></p>
+            </ul>
+            <form method="get" action="/refund">
+                <input type="hidden" name="ticket_id" value="{{ ticket[0] }}">
+                <button type="submit" class="btn btn-danger">Request refund</button>
+            </form>
+        </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}
