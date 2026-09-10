@@ -23,10 +23,12 @@
                 <li class="list-group-item"><p class='card-text'>Date and time: <strong>{{ ticket[10] }}</strong></p></li>
                 <p></p>
             </ul>
+            {% if ticket[-1] == True %}
             <form method="post" action="/refund">
                 <input type="hidden" name="ticket_id" value="{{ ticket[0] }}">
                 <button type="submit" class="btn btn-danger">Request refund</button>
             </form>
+            {% endif %}
         </div>
         </div>
         {% endfor %}

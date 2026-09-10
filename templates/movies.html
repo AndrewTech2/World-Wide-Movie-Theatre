@@ -67,24 +67,31 @@
 <h3 class="align-text-center">No movies to show!</h3>
 {% endif %}
 {% if title != "Add" %}
-<div class="d-flex flex-wrap flex-column align-text-right">
-  {% if title == "Home" %}
-  <form action="/" method="get">
-    <input type="hidden" name="page" value="{{ page + 1 }}">
-    <button type="submit" class="btn btn-primary">Next page</button>
-  </form>
-  {% else %}
-  <form action="/search" method="get">
-    <input type="hidden" name="page" value="{{ page + 1 }}">
-    {% if search %}
-    <input type="hidden" name="query" value="{{ query }}">
-    {% endif %}
-    {% if order %}
-    <input type="hidden" name="genre" value="{{ genre }}">
-    {% endif %}
-    <button type="submit" class="btn btn-primary">Next page</button>
-  </form>
-  {% endif %}
+<div class="d-flex flex-wrap flex-row justify-content-center">
+  <div>
+    <form action="/search" method="get">
+      <input type="hidden" name="page" value="{{ page - 1 }}">
+      {% if query %}
+      <input type="hidden" name="query" value="{{ query }}">
+      {% endif %}
+      {% if genre %}
+      <input type="hidden" name="genre" value="{{ genre }}">
+      {% endif %}
+      <button type="submit" class="btn btn-primary">Previous page</button>
+    </form>
+  </div>
+  <div> 
+    <form action="/search" method="get">
+      <input type="hidden" name="page" value="{{ page + 1 }}">
+      {% if query %}
+      <input type="hidden" name="query" value="{{ query }}">
+      {% endif %}
+      {% if genre %}
+      <input type="hidden" name="genre" value="{{ genre }}">
+      {% endif %}
+      <button type="submit" class="btn btn-primary">Next page</button>
+    </form>
+  </div>
 </div>
 {% endif %}
 
