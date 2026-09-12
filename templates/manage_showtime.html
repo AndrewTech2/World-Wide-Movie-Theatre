@@ -1,0 +1,35 @@
+{% extends "layout_registered.html" %}
+
+{% block title %}
+Manage showtime
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="d-flex flex-row justify-content-center">
+        <div class="col-md-6 d-flex justify-content-center">
+            <div class="card bg-light mb-3" style="max-width: 20rem;">
+                <p class="card-header">WWMT ID: <strong>{{ showtime[1] }}</strong></p>
+                <div class="card-body">
+                    <h4 class="card-title">{{ showtime[8] }}</h4>
+                    <p class="card-text">Date and time: <strong>{{ showtime[3][:-3] }}</strong></p>
+                    <p class="card-text">Location: <strong>{{ showtime[4] }}</strong></p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <form action="/manage_showtime" method="post">
+                <input type="hidden" name="showtime_id" value="{{ showtime[0] }}">
+                <label for="datetime" class="form-label">New date and time</label>
+                <input type="datetime-local" class="form-control" id="datetime" name="datetime" autocomplete="off">
+                <label for="location" class="form-label mt-2">New location</label>
+                <input type="text" id="location" name="location" class="form-control">
+                <div class="align-text-center">
+                <button class="btn btn-success mt-2">Submit</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+</div>
+{% endblock %}

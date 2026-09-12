@@ -4,7 +4,7 @@ import os
 from flask import Flask, redirect, render_template, session, request
 from flask_session import Session
 from string import ascii_lowercase
-import sqlite3, re, werkzeug.security, datetime, requests, smtplib, ssl
+import sqlite3, re, werkzeug.security, datetime, requests, smtplib, ssl, secrets
 
 # Initialize application
 app = Flask(__name__)
@@ -20,7 +20,7 @@ TICKET_TYPES = {'adult': 'adults', 'child': 'children', 'senior': 'seniors'}
 TICKET_TYPES_PLURAL = {'adults': 'adult', 'children': 'child', 'seniors': 'senior'}
 
 # Configure session cookies 
-app.secret_key = b'\xc7\xf8\x8a\xa4\xb7\xa4\x90'
+app.secret_key = os.getenv("SECRET_KEY")
 app.config['SESSION_TYPE'] = "filesystem"
 app.config['SESSION_PERMANENT'] = False
 Session(app)
@@ -35,7 +35,6 @@ def valid_showtime(show: list, datetime_idx: int) -> bool:
 
 def eliminate_invalid_showtimes(showtimes: list, datetime_idx: int) -> list:
     """ Eliminate showtimes which are past their date. """
-    print(showtimes)
     new_showtimes = []
     for showtimes_ind in range(len(showtimes)):
         if valid_showtime(showtimes[showtimes_ind], datetime_idx=datetime_idx):
@@ -75,6 +74,10 @@ def get_credentials(id):
     if not record:
         return None
     return (record[4], record[1])
+
+def get_date_now() -> str:
+    """" Returns datetime now formatted in a string. """
+    return datetime.datetime.strftime(datetime.datetime.now(), "%Y-%m-%d %H:%M:%S")
 
 @app.route("/", methods=['GET'])
 def index():
@@ -318,6 +321,8 @@ def reset_password():
         new_hsh = werkzeug.security.generate_password_hash(request.form.get("new"))
         # Update password in database
         curr.execute("UPDATE users SET password=? WHERE id=?", (new_hsh, session.get("user_id"),))
+        today = get_date_now()
+        curr.execute("INSERT INTO notifications (user_id, message, type, date) VALUES (?, ?, ?, ?)", (session.get("user_id"), "Changed password. If you believe this was not you, reset your password now.", "Change password", today,))
         conn.commit()
         conn.close()
         # Display success message
@@ -447,6 +452,9 @@ def buy():
                 # Parse row and column from field name
                 field_dict['row'] = int(field.split("_")[1])
                 field_dict['seat'] = int(field.split("_")[2])
+                already_occupied = curr.execute("SELECT * FROM tickets WHERE showtime_id=? AND column=? AND seat=?", (request.form.get("showtime_id"), field_dict['row'], field_dict['seat'],)).fetchall()
+                if already_occupied:
+                    return render_template("error.html", error="One of the seats is already occupied.", login=True, user=user, username=username)
                 seats.append(field_dict)
         # Verify user selected at least one seat
         if not ok:
@@ -471,9 +479,10 @@ def buy():
         # Extract current revenue and capacity from showtime
         revenue = int(record[0][5])
         capacity = int(record[0][6])
+        if len(seats) > capacity:
+            return render_template("error.html", error="Surpassed capacity!", login=True, user=user, username=username)
         # Calculate new revenue by adding price for each ticket type purchased
         for ticket_type in TICKET_PRICES.keys():
-            print(ticket_type)
             revenue += TICKET_PRICES[ticket_type] * tickets_dict[TICKET_TYPES[ticket_type]]
         # Update available capacity by subtracting purchased tickets
         capacity -= tickets_total
@@ -487,6 +496,9 @@ def buy():
             for _ in range(no):
                 seat = seats[seats_idx]
                 curr.execute("INSERT INTO tickets (user_id, showtime_id, price, column, seat, type) VALUES (?, ?, ?, ?, ?, ?)", (session.get("user_id"), request.form.get("showtime_id"), TICKET_PRICES[TICKET_TYPES_PLURAL[ticket_type]], seat['row'], seat['seat'], TICKET_TYPES_PLURAL[ticket_type],))
+                today = get_date_now()
+                ticket_id = curr.execute("SELECT id FROM TICKETS WHERE user_id=? ORDER BY id DESC LIMIT 1", (session.get("user_id"),)).fetchone()[0]
+                curr.execute("INSERT INTO notifications (user_id, message, type, date) VALUES (?, ?, ?, ?)", (session.get("user_id"), f"Purchased ticket with ID {ticket_id}.", 'Purchase ticket', today))
                 seats_idx += 1
         # Commit all database changes
         conn.commit()
@@ -588,8 +600,72 @@ def refund():
         curr.execute("UPDATE showtimes SET revenue=?, capacity=? WHERE showtimes.id=?", (revenue, capacity, ticket[2]))
         # Remove the ticket from the database
         curr.execute("DELETE FROM tickets WHERE id=?", (request.form.get("ticket_id"),))
+        today = get_date_now()
+        curr.execute("INSERT INTO notifications (user_id, message, type, date) VALUES (?, ?, ?, ?)", (session.get("user_id"), f"Refunded ${price} for .", "Refund", today,))
         conn.commit()
         conn.close()
         # Display success message with refund amount
         return render_template("success.html", message=f"Successfully refunded ${price}.", login=True, user=user, username=username)
 
+@app.route("/notifications", methods=['GET'])
+@login_required
+def notifications():
+    # Get credentials
+    credentials = get_credentials(session.get("user_id"))
+    if not credentials:
+        session.clear()
+        return redirect("/")
+    user = credentials[0]
+    username = credentials[1]
+    conn = sqlite3.connect("wwmt.db")
+    curr = conn.cursor()
+    notifications = curr.execute("SELECT * FROM notifications WHERE user_id=? ORDER BY id DESC", (session.get("user_id"),)).fetchall()
+    conn.commit()
+    conn.close()
+    return render_template("notifications.html", notifications=notifications, user=user, username=username)
+
+@app.route("/manage_showtime", methods=['GET', 'POST'])
+@login_required
+@admin_required
+def manage_showtime():
+    # Get credentials
+    credentials = get_credentials(session.get("user_id"))
+    if not credentials:
+        session.clear()
+        return redirect("/")
+    user = credentials[0]
+    username = credentials[1]
+    conn = sqlite3.connect("wwmt.db")
+    curr = conn.cursor()
+    if request.method == "POST":
+        if not request.form.get("showtime_id"):
+            return render_template("error.html", error="No showtime ID provided!", login=True, user=user, username=username)
+        records = curr.execute("SELECT * FROM showtimes WHERE id=? AND user_id=?", (request.form.get("showtime_id"), session.get("user_id"),)).fetchone()
+        if not records:
+            return render_template("error.html", error="Invalid showtime ID.", login=True, user=user, username=username)
+        if request.form.get("datetime"):
+            if datetime.datetime.now() > datetime.datetime.strptime(request.form.get("datetime"), "%Y-%m-%dT%H:%M"):
+                return render_template("error.html", error="Please ensure date and time are in future.", login=True, user=user, username=username)
+        if request.form.get("datetime") and request.form.get("location"):
+            curr.execute("UPDATE showtimes SET location=?, runtime=? WHERE id=?", (request.form.get("location"), request.form.get("datetime").replace("T", " ")+":00", request.form.get("showtime_id"),))
+        elif request.form.get("datetime"):
+            curr.execute("UPDATE showtimes SET runtime=? WHERE id=?", (request.form.get("datetime").replace("T", " ")+":00", request.form.get("showtime_id"),))
+        elif request.form.get("location"):
+            curr.execute("UPDATE showtimes SET location=? WHERE id=?", (request.form.get("location"), request.form.get("showtime_id"),))
+        else:
+            return render_template("error.html", error="No details changed!", login=True, user=user, username=username)
+        today = get_date_now()
+        curr.execute("INSERT INTO notifications (user_id, message, type, date) VALUES (?, ?, ?, ?)", (session.get("user_id"), f"Updated showtime with ID {request.form.get("showtime_id")}.", "Update showtime", today,))
+        conn.commit()
+        conn.close()
+        return render_template("success.html", message=f"Successfully edited details for showtime with ID {request.form.get("showtime_id")}.", login=True, user=user, username=username)
+    else:
+        showtime_id = request.args.get("id")
+        if not showtime_id:
+            return render_template("error.html", error='Please specify a showtime ID.', login=True, user=user, username=username)
+        showtime = curr.execute("SELECT * FROM showtimes, movies WHERE showtimes.id = ? AND user_id=? AND showtimes.movie_id = movies.id", (showtime_id, session.get("user_id"),)).fetchone()
+        if not showtime:
+            return render_template("error.html", error="Invalid showtime.", login=True, user=user, username=username)
+        conn.commit()
+        conn.close()
+        return render_template("manage_showtime.html", showtime=showtime, user=user, username=username)

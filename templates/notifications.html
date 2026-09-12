@@ -1,0 +1,29 @@
+{% extends "layout_registered.html" %}
+
+{% block title %}
+Notifications
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="d-flex flex-column align-items-center">
+        {% if not notifications %}
+        <h1>No notifications!</h1>
+        {% endif %}
+        {% for notification in notifications %}
+        <div class="toast show mt-3" role="alert" aria-live="assertive" aria-atomic="true">
+            <div class="toast-header">
+                <strong class="me-auto">{{ notification[3] }}</strong>
+                <small>{{ notification[4] }}</small>
+                <button type="button" class="btn-close ms-2 mb-1" data-bs-dismiss="toast" aria-label="Close">
+                    <span aria-hidden="true"></span>
+                </button>
+            </div>
+            <div class="toast-body">
+                {{ notification[2] }}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}
