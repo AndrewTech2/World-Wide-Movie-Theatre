@@ -38,7 +38,7 @@ button[type="submit"] {
 
 .seating td {
     border: 1px solid gray;
-    height: -50px;
+    text-align: center;
 }
 
 .seating td input {

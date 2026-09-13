@@ -484,6 +484,7 @@ def buy():
         # Calculate new revenue by adding price for each ticket type purchased
         for ticket_type in TICKET_PRICES.keys():
             revenue += TICKET_PRICES[ticket_type] * tickets_dict[TICKET_TYPES[ticket_type]]
+        print(revenue)
         # Update available capacity by subtracting purchased tickets
         capacity -= tickets_total
         # Update the showtime record with new revenue and capacity
@@ -601,7 +602,7 @@ def refund():
         # Remove the ticket from the database
         curr.execute("DELETE FROM tickets WHERE id=?", (request.form.get("ticket_id"),))
         today = get_date_now()
-        curr.execute("INSERT INTO notifications (user_id, message, type, date) VALUES (?, ?, ?, ?)", (session.get("user_id"), f"Refunded ${price} for .", "Refund", today,))
+        curr.execute("INSERT INTO notifications (user_id, message, type, date) VALUES (?, ?, ?, ?)", (session.get("user_id"), f"Refunded ${price}.", "Refund", today,))
         conn.commit()
         conn.close()
         # Display success message with refund amount
@@ -669,3 +670,36 @@ def manage_showtime():
         conn.commit()
         conn.close()
         return render_template("manage_showtime.html", showtime=showtime, user=user, username=username)
+
+@app.route("/statistics", methods=['GET'])
+@login_required
+@admin_required
+def view_statistics():
+    # Get credentials
+    credentials = get_credentials(session.get("user_id"))
+    if not credentials:
+        session.clear()
+        return redirect("/")
+    user = credentials[0]
+    username = credentials[1]
+    conn = sqlite3.connect("wwmt.db")
+    curr = conn.cursor()
+    if request.method == "GET":
+        if not request.args.get("id"):
+            return render_template("error.html", error="Please specify a showtime ID.", login=True, user=user, username=username)
+        showtime = curr.execute("SELECT * FROM showtimes, movies WHERE showtimes.id=" \
+        "? AND showtimes.user_id=? AND showtimes.movie_id = movies.id", (request.args.get("id"), session.get("user_id"),)).fetchone()
+        if not showtime:
+            return render_template("error.html", error="Invalid showtime ID.", login=True, user=user, username=username)
+        tickets_list = curr.execute("SELECT * FROM tickets, showtimes, movies, users WHERE showtimes.id=? AND showtimes.movie_id = movies.id AND showtimes.id=tickets.showtime_id AND showtimes.user_id=? AND users.id = tickets.user_id", (request.args.get("id"), session.get("user_id"),)).fetchall()
+        occupied_seats = {}
+        for ticket in tickets_list:
+            occupied_seats[f'{ticket[4]}_{ticket[5]}'] = True
+        seats = []
+        for row in range(1, 6):
+            for seat in range(1, 11):
+                occupied = False
+                if occupied_seats.get(f"{row}_{seat}"):
+                    occupied = True
+                seats.append({'row': row, 'seat': seat, 'occupied': occupied})
+        return render_template("statistics.html", showtime=showtime, seats=seats, tickets_list=tickets_list, user=user, username=username)
