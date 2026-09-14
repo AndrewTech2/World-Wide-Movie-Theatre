@@ -15,6 +15,7 @@ Showtimes
         {% for showtime in all_showtimes %}
         <div class="card bg-light mb-3" style="max-width: 20rem;">
         <p class="card-header">WWMT ID: <strong>{{ showtime[1] }}</strong></p>
+        <p class="card-header">Showtime ID: <strong>{{ showtime[0] }}</strong></p>
         <div class="card-body">
             <h4 class="card-title">{{ showtime[8] }}</h4>
             <p class="card-text">Date and time: <strong>{{ showtime[3][:-3] }}</strong></p>
@@ -23,7 +24,7 @@ Showtimes
             <br>
             <a href="/statistics?id={{ showtime[0] }}" class="card-link">View statistics</a>
             <br>
-            <a href="/delete?id={{ showtime[0] }}&type=showtime" class="card-link">Delete showtime</a>
+            <a href="/delete?id={{ showtime[0] }}&type=showtimes" class="card-link">Delete showtime</a>
         </div>
         </div>
         {% endfor %}

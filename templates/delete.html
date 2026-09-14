@@ -1,0 +1,26 @@
+{% extends "layout_registered.html" %}
+
+{% block title %}
+    Delete
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="d-flex flex-wrap justify-content-center align-items center">
+        <div class="col-md-6 border align-text-center p-3">
+            <h3>Are you sure you want to delete {{ type[:-1] }} with ID {{ record['id'] }}?</h3>
+            <div class="d-flex flex-row flex-wrap justify-content-center">
+            <form action="/" method="get">
+                <button type="submit" class="btn btn-primary">Cancel</button>
+            </form>
+            <form action="/delete" method="post">
+                <input type="hidden" name="type" value="{{ type }}">
+                <input type="hidden" name="id" value="{{ record['id'] }}">
+                <button class="btn btn-danger" type="submit">Remove</button>
+            </form>
+            
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

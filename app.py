@@ -18,6 +18,7 @@ GMAIL_PASSWORD = os.getenv("GMAIL_PASSWORD")
 TICKET_PRICES = {'adult': 15, 'child': 10, 'senior': 10}
 TICKET_TYPES = {'adult': 'adults', 'child': 'children', 'senior': 'seniors'}
 TICKET_TYPES_PLURAL = {'adults': 'adult', 'children': 'child', 'seniors': 'senior'}
+DELETE_TYPES = ['showtimes', 'movies']
 
 # Configure session cookies 
 app.secret_key = os.getenv("SECRET_KEY")
@@ -703,3 +704,28 @@ def view_statistics():
                     occupied = True
                 seats.append({'row': row, 'seat': seat, 'occupied': occupied})
         return render_template("statistics.html", showtime=showtime, seats=seats, tickets_list=tickets_list, user=user, username=username)
+
+@app.route("/delete", methods=['GET', 'POST'])
+@login_required
+@admin_required
+def delete():
+    user, username = get_credentials(session.get("user_id"))[0], get_credentials(session.get("user_id"))[1]
+    conn = sqlite3.connect("wwmt.db")
+    conn.row_factory = sqlite3.Row
+    curr = conn.cursor()
+    if request.method == "POST":
+        pass
+    else:
+        if not request.args.get("id"):
+            return render_template("error.html", error="Please specify a showtime / movie ID.", login=True, user=user, username=username)
+        if not request.args.get("type"):
+            return render_template("error.html", error="Please specify valid content type!", login=True, user=user, username=username)
+        if not request.args.get("type") in DELETE_TYPES:
+            return render_template("error.html", error="Invalid content type.", login=True, user=user, username=username)
+        if request.args.get("type") == "movies":
+            record = curr.execute("SELECT * FROM movies WHERE id=?", (request.args.get("id"),)).fetchone()
+        else:
+            record = curr.execute("SELECT * FROM showtimes WHERE id=? AND user_id=?", (request.args.get("id"), session.get("user_id"),)).fetchone()
+        if not record:
+            return render_template("error.html", error="Movie / showtime not found.", login=True, user=user, username=username)
+        return render_template("delete.html", user=user, username=username, record=record, type=request.args.get("type"))
