@@ -9,6 +9,10 @@ Notifications
     <div class="d-flex flex-column align-items-center">
         {% if not notifications %}
         <h1>No notifications!</h1>
+        {% else %}
+        <form action="/notifications" method="post">
+            <button type="submit" class="btn btn-danger">Delete all notifications</button>
+        </form>
         {% endif %}
         {% for notification in notifications %}
         <div class="toast show mt-3" role="alert" aria-live="assertive" aria-atomic="true">

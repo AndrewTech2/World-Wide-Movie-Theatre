@@ -33,6 +33,7 @@
           <li class="list-group-item">WWMT ID: <strong>{{ movie[0] }}</strong></li>
           <li class="list-group-item">IMDb link: <strong><a href="https://imdb.com/title/{{ movie[9] }}"
                 target="_blank">Link</a></strong></li>
+          <li class="list-group-item"><form action='/delete' method='get'><input type='hidden' name="id" value="{{ movie[0] }}"><input type="hidden" name="type" value="movies"><button class="btn btn-danger" type="submit">Delete movie</button></form></li>
         </ul>
       </div>
     </div>

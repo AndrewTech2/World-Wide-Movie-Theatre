@@ -3,8 +3,7 @@ from dotenv import load_dotenv
 import os
 from flask import Flask, redirect, render_template, session, request
 from flask_session import Session
-from string import ascii_lowercase
-import sqlite3, re, werkzeug.security, datetime, requests, smtplib, ssl, secrets
+import sqlite3, re, werkzeug.security, datetime, requests
 
 # Initialize application
 app = Flask(__name__)
@@ -13,8 +12,6 @@ app = Flask(__name__)
 USER_TYPES = ['admin', 'user']
 load_dotenv()
 OMDB_API = os.getenv("OMDB_API")
-APP_PASSWORD = os.getenv("GMAIL_APP_PASSWORD")
-GMAIL_PASSWORD = os.getenv("GMAIL_PASSWORD")
 TICKET_PRICES = {'adult': 15, 'child': 10, 'senior': 10}
 TICKET_TYPES = {'adult': 'adults', 'child': 'children', 'senior': 'seniors'}
 TICKET_TYPES_PLURAL = {'adults': 'adult', 'children': 'child', 'seniors': 'senior'}
@@ -72,6 +69,8 @@ def get_credentials(id):
     conn = sqlite3.connect("wwmt.db")
     curr = conn.cursor()
     record = curr.execute("SELECT * FROM users WHERE id=?", (id,)).fetchone()
+    conn.commit()
+    conn.close()
     if not record:
         return None
     return (record[4], record[1])
@@ -82,6 +81,7 @@ def get_date_now() -> str:
 
 @app.route("/", methods=['GET'])
 def index():
+    """Render the homepage for signed-in users or the public landing page for guests."""
     if session.get("user_id"):
         offset = 0
         conn = sqlite3.connect("wwmt.db")
@@ -109,6 +109,7 @@ def index():
 
 @app.route("/register", methods=["POST", "GET"])
 def register():
+    """Display the registration form and create a new user account on submit."""
     if session.get("user_id"):
         return redirect("/")
     if request.method == "POST":
@@ -141,6 +142,7 @@ def register():
 
 @app.route("/login", methods=["POST", "GET"])
 def login():
+    """Allow a registered user to sign in or redirect them if already authenticated."""
     # If user is logged in, redirect
     if session.get("user_id"):
         return redirect("/")
@@ -181,6 +183,7 @@ def logout():
 @login_required
 @admin_required
 def add():
+    """Search OMDb for a movie to add and show matching results to admins."""
     # Get user credentials
     credentials = get_credentials(session.get('user_id'))
     if not credentials:
@@ -213,6 +216,7 @@ def add():
 @admin_required
 @app.route("/add_movie", methods=['POST'])
 def add_movie():
+    """Persist a selected OMDb movie into the local DB and redirect to its detail page."""
     # Get user credentials
     credentials = get_credentials(session.get('user_id'))
     if not credentials:
@@ -250,6 +254,7 @@ def add_movie():
 @admin_required
 @app.route("/showtimes", methods=['GET', 'POST'])
 def showtimes():
+    """Let admins create a showtime for a movie or list the showtimes they manage."""
     # Get user credentials
     credentials = get_credentials(session.get('user_id'))
     if not credentials:
@@ -279,6 +284,8 @@ def showtimes():
         # Store the new showtime and redirect to its detail page.
         curr.execute("INSERT INTO showtimes (movie_id, user_id, runtime, location) VALUES (?, ?, ?, ?)", (request.form.get("movie_id"), session.get("user_id"), runtime, request.form.get("location"),))
         showtime_id = curr.execute("SELECT * FROM showtimes WHERE user_id=? ORDER BY id DESC", (session.get('user_id'),)).fetchall()[0][0]
+        today_text = get_date_now()
+        curr.execute("INSERT INTO notifications (user_id, message, type, date) VALUES (?, ?, ?, ?)", (session.get("user_id"), f"Added showtime with ID {showtime_id}.", "Add showtime", today_text))
         conn.commit()
         conn.close()
         return render_template("success.html", message=f"Successfully added showtime with ID {showtime_id}.", login=True, user=user, username=username)
@@ -337,6 +344,7 @@ def reset_password():
 @app.route("/movie", methods=['GET'])
 @login_required
 def movie():
+    """Display movie details and only the still-valid showtimes for that title."""
     # Get user credentials
     conn = sqlite3.connect("wwmt.db")
     curr = conn.cursor()
@@ -359,7 +367,7 @@ def movie():
 @login_required
 @app.route("/search", methods=['GET'])
 def search():
-    """Searches for movies by title and/or genre with pagination support."""
+    """Search for movies by title and/or genre with paginated results."""
     # Get user credentials
     credentials = get_credentials(session.get('user_id'))
     if not credentials:
@@ -409,7 +417,7 @@ def search():
 @login_required
 @app.route("/buy", methods=['POST', 'GET'])
 def buy():
-    """Handles ticket purchasing for a movie showtime, including seat selection and payment processing."""
+    """Handle ticket purchase form rendering and seat booking for a selected showtime."""
     # Establish database connection
     conn = sqlite3.connect("wwmt.db")
     curr = conn.cursor()
@@ -535,7 +543,7 @@ def buy():
 @login_required
 @app.route("/tickets", methods=['GET'])
 def tickets():
-    """Displays all tickets purchased by the logged-in user."""
+    """List all tickets owned by the currently signed-in user, including validity status."""
     # Establish database connection
     conn = sqlite3.connect("wwmt.db")
     curr = conn.cursor()
@@ -566,7 +574,7 @@ def tickets():
 @login_required
 @app.route("/refund", methods=['POST'])
 def refund():
-    """Processes a ticket refund for a user's purchased ticket."""
+    """Refund a valid ticket and update the related showtime capacity and revenue."""
     # Establish database connection
     conn = sqlite3.connect("wwmt.db")
     curr = conn.cursor()
@@ -609,9 +617,10 @@ def refund():
         # Display success message with refund amount
         return render_template("success.html", message=f"Successfully refunded ${price}.", login=True, user=user, username=username)
 
-@app.route("/notifications", methods=['GET'])
+@app.route("/notifications", methods=['GET', 'POST'])
 @login_required
 def notifications():
+    """Render the user's notification feed or clear all notifications for that account."""
     # Get credentials
     credentials = get_credentials(session.get("user_id"))
     if not credentials:
@@ -620,16 +629,26 @@ def notifications():
     user = credentials[0]
     username = credentials[1]
     conn = sqlite3.connect("wwmt.db")
+    conn.row_factory = sqlite3.Row
     curr = conn.cursor()
-    notifications = curr.execute("SELECT * FROM notifications WHERE user_id=? ORDER BY id DESC", (session.get("user_id"),)).fetchall()
-    conn.commit()
-    conn.close()
-    return render_template("notifications.html", notifications=notifications, user=user, username=username)
+    if request.method == "GET":
+        # Display notifications
+        notifications = curr.execute("SELECT * FROM notifications WHERE user_id=? ORDER BY id DESC", (session.get("user_id"),)).fetchall()
+        conn.commit()
+        conn.close()
+        return render_template("notifications.html", notifications=notifications, user=user, username=username)
+    elif request.method == "POST":
+        # Delete all notifications
+        curr.execute("DELETE FROM notifications WHERE user_id=?", (session.get("user_id"),))
+        conn.commit()
+        conn.close()
+        return redirect('/notifications')
 
 @app.route("/manage_showtime", methods=['GET', 'POST'])
 @login_required
 @admin_required
 def manage_showtime():
+    """Allow administrators to edit a showtime's date/time or location."""
     # Get credentials
     credentials = get_credentials(session.get("user_id"))
     if not credentials:
@@ -676,6 +695,7 @@ def manage_showtime():
 @login_required
 @admin_required
 def view_statistics():
+    """Show a showtime's occupancy map and ticket list for the signed-in admin."""
     # Get credentials
     credentials = get_credentials(session.get("user_id"))
     if not credentials:
@@ -703,18 +723,57 @@ def view_statistics():
                 if occupied_seats.get(f"{row}_{seat}"):
                     occupied = True
                 seats.append({'row': row, 'seat': seat, 'occupied': occupied})
+        conn.commit()
+        conn.close()
         return render_template("statistics.html", showtime=showtime, seats=seats, tickets_list=tickets_list, user=user, username=username)
 
 @app.route("/delete", methods=['GET', 'POST'])
 @login_required
 @admin_required
 def delete():
+    """Confirm and remove a showtime or movie after validating admin ownership and constraints."""
     user, username = get_credentials(session.get("user_id"))[0], get_credentials(session.get("user_id"))[1]
     conn = sqlite3.connect("wwmt.db")
     conn.row_factory = sqlite3.Row
     curr = conn.cursor()
     if request.method == "POST":
-        pass
+        if '' in [request.form.get(field) for field in request.form]:
+            return render_template("error.html", error="Please do not interfere with the pre-established input fields.", login=True, user=user, username=username)
+        if request.form.get("type") not in DELETE_TYPES:
+            return render_template("error.html", error="Invalid content type.", login=True, user=user, username=username)
+        if not request.form.get("id"):
+            return render_template("error.html", error='Please specify an ID.', login=True, user=user, username=username)
+        if request.form.get("type") == "showtimes":
+            record = curr.execute("SELECT * FROM showtimes WHERE id=? AND user_id=?", (request.form.get("id"), session.get("user_id"),)).fetchone()
+            if not record:
+                return render_template("error.html", error="Invalid showtime ID.", user=user, username=username, login=True)
+            tickets_list = curr.execute("SELECT * FROM tickets WHERE showtime_id=?", (request.form.get("id"),)).fetchall()
+            for ticket in tickets_list:
+                user_id = ticket['user_id']
+                today = get_date_now()
+                if datetime.datetime.now() < datetime.datetime.strptime(record['runtime'], "%Y-%m-%d %H:%M:%S"):
+                    curr.execute("INSERT INTO notifications (user_id, message, type, date) VALUES (?, ?, ?, ?)", (user_id, f"Refunded ${ticket['price']} after a reservation with ID {request.form.get("id")} was annulled.", "Reservation annulled", today,))
+            curr.execute("DELETE FROM tickets WHERE showtime_id=?", (request.form.get("id"),))
+            curr.execute("DELETE FROM showtimes WHERE id=? AND user_id=?", (request.form.get("id"), session.get("user_id"),))
+            today = get_date_now()
+            curr.execute("INSERT INTO notifications (user_id, message, type, date) VALUES (?, ?, ?, ?)", (session.get("user_id"), f"Deleted showtime with ID {request.form.get("id")}.", "Delete showtime", today,))
+            conn.commit()
+            conn.close()
+            return render_template("success.html", message=f"Successfully deleted showtime with ID {request.form.get("id")}", login=True, user=user, username=username)
+        else:
+            record = curr.execute("SELECT * FROM movies WHERE id=?", (request.form.get("id"),)).fetchone()
+            if not record:
+                return render_template("error.html", error="Invalid movie ID.", user=user, username=username, login=True)
+            title = record['title']
+            all_showtimes = curr.execute("SELECT * FROM showtimes WHERE movie_id=?", (request.form.get("id"),)).fetchall()
+            if all_showtimes:
+                return render_template("error.html", error="Cannot delete movie when there are showtimes allocated.", login=True, user=user, username=username)
+            curr.execute("DELETE FROM movies WHERE id=?", (request.form.get("id"),))
+            today = get_date_now()
+            curr.execute("INSERT INTO notifications (user_id, message, type, date) VALUES (?, ?, ?, ?)", (session.get("user_id"), f"Deleted movie with title \"{title}\".", 'Delete movie', today))
+            conn.commit()
+            conn.close()
+            return render_template("success.html", message=f"Successfully deleted movie titled \"{title}\".", login=True, user=user, username=username)
     else:
         if not request.args.get("id"):
             return render_template("error.html", error="Please specify a showtime / movie ID.", login=True, user=user, username=username)
@@ -728,4 +787,6 @@ def delete():
             record = curr.execute("SELECT * FROM showtimes WHERE id=? AND user_id=?", (request.args.get("id"), session.get("user_id"),)).fetchone()
         if not record:
             return render_template("error.html", error="Movie / showtime not found.", login=True, user=user, username=username)
+        conn.commit()
+        conn.close()
         return render_template("delete.html", user=user, username=username, record=record, type=request.args.get("type"))
