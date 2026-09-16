@@ -27,7 +27,7 @@ function calculate_subtotal() {
             let price = ticket_prices[input.id];
             let product_string = input.id;
             let products = document.querySelector("#products");
-            products.innerHTML += `<tr><td>${product_string} ticket</td><td>${price}</td><td>${input.value}</td><td>${price * input.value}</td></tr>`;
+            products.innerHTML += `<tr><td>${product_string} ticket</td><td>$${price}</td><td>${input.value}</td><td>$${price * input.value}</td></tr>`;
         }
     }
 }
